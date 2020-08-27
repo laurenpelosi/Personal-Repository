@@ -65,7 +65,7 @@ To find out more about the dataset, type the following in your Console: `?datasa
 
 Based on the help file, how many rows and how many columns does the `datasaurus_dozen` file have? What are the variables included in the data frame? After you've added your response below, commit your changes with the commit message "Added answer for Ex 1", and push.
 
-> RESPONSE:
+> RESPONSE: 1846 rows, 3 variables: dataset, x, y
 
 Let's take a look at what these datasets are. To do so we can make a *frequency table* of the dataset variable:
 
@@ -101,7 +101,7 @@ If this seems like a lot, don't worry.  You will learn about the philosophy of b
 
 What do you notice now about the relationship between x and y?
 
-> RESPONSE:
+> RESPONSE:They are correlated in dinosaur-shape. Remarkable. 
 
 ```{r fig.fullwidth=TRUE}
 ggplot(data = dino_data, mapping = aes(x = x, y = y)) +
@@ -115,10 +115,13 @@ ggplot(data = dino_data, mapping = aes(x = x, y = y)) +
 
 Calculate the correlation coefficient between `x` vs. `y` for the `star` dataset. You can (and should) reuse code we introduced above, just replace the dataset name with the desired dataset. How does this value compare to the correlation coefficient from the `dino` dataset?
 
-> RESPONSE: 
+> RESPONSE: This correlation is only slightly less negative than the previous. 
 
 ```{r}
-
+dino_data <- datasaurus_dozen %>%
+  filter(dataset == "star")
+dino_data %>%
+  summarize(r = cor(x, y))
 ```
 
 Then, plot `y` versus `x` for the `star` dataset.  Does the plot look the same as the plot of the `dino` data?
@@ -126,7 +129,8 @@ Then, plot `y` versus `x` for the `star` dataset.  Does the plot look the same a
 > RESPONSE:
 
 ```{r}
-
+ggplot(data = dino_data, mapping = aes(x = x, y = y)) +
+  geom_point()
 ```
 
 
