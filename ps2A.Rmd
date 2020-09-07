@@ -102,22 +102,23 @@ babynames2 <- babynames %>%
 ### b. 
 Following the code presented in Section 5.2.4, create a dataset called `BabyNarrow` that summarizes the total number of people with each name (born between 2000 and 2017), grouped by sex. (Hint: follow the second code chunk on page 102, but don't filter on any particular names.)  Look at the dataset.  Why have we called this dataset "narrow"?
 
-> ANSWER:
+> ANSWER: This is a narrow dataset because it summarizes the observations in columns, rather than laying them out in rows. 
 
 ```{r}
 BabyNarrow <- babynames2 %>%
   group_by(sex) %>%
   summarize(total_births = sum(n))
+glimpse(BabyNarrow)
 
 ```
 
 ### c.
 Now, following the code chunk presented on page 103, put the data into a wide format (call the new dataset `BabyWide`), and only keep observations where both `M` and `F` are greater than 10,000.  Compute the `ratio` (as `pmin(M/F, F/M`)) and identify the top three names with the largest ratio.  (Note: these names could be different from the ones found on page 103 since we limited the dataset to years 2000-2017 and names with greater than 10,000 individuals.)
 
-> ANSWER: Unable to get babynames2 to save because of ungrouping output error. If this ran, I would take the top three names. 
+> ANSWER: 
 
 ```{r}
-BabyWide <- babynames2
+BabyWide <- babynames2 %>%
   filter(M > 10000, F > 10000) %>%
   mutate(ratio = pmin(M/F, F/M)) %>%
   arrange(desc(ratio))
