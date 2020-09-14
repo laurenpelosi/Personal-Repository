@@ -54,9 +54,6 @@ server <- function(input, output) {
     hist(rv$norm, breaks = 30, col = "grey", border = "white",
          main = "500 random draws from a standard normal distribution")
   })
-  output$stats <- renderPrint({
-    summary(rnorm(input$num))
-  })
   output$unif <- renderPlot({
     hist(rv$unif, breaks = 30, col = "grey", border = "white",
          main = "500 random draws from a standard uniform distribution")
@@ -65,7 +62,9 @@ server <- function(input, output) {
     hist(rv$chisq, breaks = 30, col = "grey", border = "white",
          main = "500 random draws from a Chi Square distribution with two degree of freedom")
   })
-  
+  output$stats <- renderPrint({
+    summary(rnorm(input$num))
+  })
 }
 
 shinyApp(ui = ui, server = server)
