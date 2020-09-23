@@ -1,0 +1,180 @@
+---
+title: "Calender Assignment"
+author: "Lauren Pelosi"
+date: "Friday, September 25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+library(ical)
+
+path <- "Users/laurenpelosi/Desktop/git/Personal-Repository/projects/calendar"
+filename <- "calendar2.ics" 
+
+calendar <- ical_parse_df("calendar2.ics")
+```
+
+```{r cars}
+# Importing the data and preliminary wrangling:
+calendar <- calendar %>%
+  mutate(start_datetime = with_tz(start, tzone = "America/New_York")
+    , end_datetime = with_tz(end, tzone = "America/New_York")
+    , date = floor_date(start_datetime, unit = "day")) 
+
+data <- calendar %>%
+  filter(start>="2020-09-06 10:00:00") %>%
+  mutate(subject = case_when(str_detect(summary, "math") ~ "math",
+                            (str_detect(summary, "health") ~ "health"),
+                             (str_detect(summary, "law")~"law"),
+                            (str_detect(summary, "Law") ~ "law"),
+                            (str_detect(summary, "data science") ~ "data science"))) %>% 
+  mutate(type = case_when(str_detect(summary, "homework") ~ "homework",
+                                (str_detect(summary, "recruiting") ~ "recruiting"),
+                                (str_detect(summary, "Jennifer") ~ "recruiting"),
+                                (str_detect(summary, "Reyes") ~ "advising"),
+                                (str_detect(summary, "WBB") ~ "basketball"),
+                                (str_detect(summary, "internship") ~ "internship"),
+                                (str_detect(summary, "ADP") ~ "research"),
+                                (str_detect(summary, "class") ~ "class"),
+                                (str_detect(summary, "exercise") ~ "exercise"),
+                                (str_detect(summary, "OH") ~ "office hours"))) 
+
+View(data)
+```
+## Questions of Interest and Data Collection
+
+I am interested in three main questions about how I spend my time: 
+  1. Am I spending roughly equal amounts of time on each of my four courses? 
+  2. How is my total screen time divided between school-related activities and non-school related activities?
+  3. Do I allow my work to affect how much exercise I'm getting in a day? 
+I would like to be spending roughly equal time on each course, decrease my total screen time, and maintain consistent exercise despite other demands on my time. Better understanding the answers to these questions will help me adjust my behavior for more desirable outcomes. 
+
+To answer these questions, I tracked my activities in Google Calendar for two weeks. I recorded for how long I was in class, doing homework, or working in office hours each day, and the subject of that class. I also recorded when I was in a general academic advising meeting. I've operationalized all these hours as "school" hours. I also recorded other screen-time activities, which include basketball team meetings, working with my research team in the LJST department, working on my internship (which happened to be light in these two weeks), and recruiting for consulting jobs. Recruiting was a dominant demand on my time outside of school and large contributor of screen time, since it involves studying online resources, making zoom calls, and attending virtual events. I call all these activities "non-school" activities. Thirdly, I recorded how much exercise I got each day - the only non-school and non-screen activity I look at. 
+
+## Am I spending roughly equal amounts of time on each of my four courses?
+Here, I use a stacked bar chart to visually evaluate if I spend roughly equal amounts of time on each of my four subjects. The full height of each bar represents the total number of hours I spent on course-related activities in a day, (including, class, homework, and office hours). Each bar further shows the breakdown of this total number of hours into its component parts, or the school subjects I was working on. 
+
+```{r}
+#Wrangling for the stacked bar chart
+#First creating a time variable and choosing relevant variables for this visualization
+data <- data %>%
+  mutate(time = as.numeric(end-start)/60) %>%
+  select(summary, date, subject, type, time, start, end)
+
+class_per_day <- data %>%
+  filter(type == "class" | type == "homework" | type == "office hours") %>%
+  group_by(date, subject) %>%
+  summarize(time = sum(time)) 
+
+View(class_per_day)
+
+#Finding the total time spent on all four subjects in a day and adding a column to show it
+#pivoted <- data %>%
+  #pivot_wider(id_cols = date, names_from = subject, values_from = time) %>%
+  #filter(date != "2020-06-22") %>%
+  #select(date, health, math, law, "data science") %>%
+  #pivot_longer(cols = c(health, math, law, "data science"), names_to = "subject", values_to = "time") %>%
+  #filter(time != "NULL")
+  #View
+
+```
+
+```{r}
+#Stacked bar chart 
+
+ggplot(class_per_day, aes(fill = subject, y = time, x = date)) + 
+    geom_bar(position="stack", stat="identity")
+```
+
+[Conclusions about stacked bar chart.]
+
+## How is my total screen time divided between school-related activities and non-school related activities?
+
+To answer my next question, I use a stacked area plot to show how my screen time has accumulated over time, as well as visually demonstrate the division of that screen time between school and non-school activities. 
+
+```{r}
+#Screen time
+
+data2 <- data %>%
+  select(date, type, time) %>%
+  mutate(category = case_when(str_detect(type, "class") ~ "school",
+                             (str_detect(type, "homework") ~ "school"),
+                             (str_detect(type, "office hours") ~ "school"),
+                              (str_detect(type, "advising") ~ "school"),
+                             (str_detect(type, "recruiting") ~ "non_school"),
+                            (str_detect(type, "basketball") ~ "non_school"))) %>%
+  filter(category != "NA")
+
+class(data2)
+
+data3 <- data2 %>%
+  group_by(date, category) %>%
+  summarize(time = sum(time))
+
+table_Q2 <- data3 %>%
+  pivot_wider(id_cols = date, names_from = category, values_from = time) %>%
+  mutate(screen_time = non_school + school)
+
+table_Q2[is.na(table_Q2)] <- 0
+
+```
+
+
+```{r}
+#Creating  the plot
+ggplot(data3, aes(x = date, y = time, fill = category)) + 
+    geom_area()
+
+```
+
+[Conclusions about stacked area chart.]
+
+## Do I allow my work to affect how much exercise I'm getting in a day? 
+
+```{r}
+tot_col <- data %>%
+  select(date, type, time) %>%
+  group_by(date) %>%
+  summarize(total = sum(time))
+
+tot_col
+
+exc_col <- data %>%
+  select(date, type, time) %>%
+  group_by(date) %>%
+  filter(type == "exercise") %>%
+  summarize(exercise = sum(time))
+
+sixth <- data.frame("2020-09-06", "5.000000", "0")
+names(sixth) <- c("date", "total", "exercise")
+seventh <- data.frame("2020-09-07", "8.000000", "0")
+names(seventh) <- c("date", "total", "exercise")
+thirteenth <- data.frame("2020-09-13", "5.500000", "0")
+names(thirteenth) <- c("date", "total", "exercise")
+
+table <- inner_join(tot_col, exc_col)
+table <- rbind(table, sixth, seventh, thirteenth)
+table %>%
+  mutate(percent = 100*(exercise/total))
+  
+```
+[Conclusions about table.]
+
+##Findings and Next Steps
+
+
+
+##Reflections
+
+  One main area of difficulty I had in the data collection process was identifying exactly how long each activity lasted. For example, I might have paused activity 1 to briefly do activity 2. I tried to correct for this by recording the dominant activity during the time, activity 1, and adding a small amount of time on the next occasion I worked on activity 2 for a significant period. While this method of data collection captured major trends, it did cause inaccuracies in the data.  In future projects, I could practice better diligence to stay occupied with just one activity at a time. This will improve both my focus and my data collection. However, I think such minor inaccuracies will come up in any project that requires logging my activities, and I should consider this when giving weight to the data and the answers it provides me, in this project and in projects like this.
+
+	To more fully answer the questions I have posed, I think I would need to record data for at least an entire academic year, though I could break when school breaks. To accurately asses whether I let other activities interfere with time I set aside to exercise, I would need to look at periods of time in which I’m engaged in different types of activities. Two semesters, involving two sets of four courses, would help me better understand if my time spent exercising is resistant to all types of time demands or just some (STEM vs. humanities courses, courses I find challenging vs. courses I find less challenging, etc.). This would improve the quality of the data I use to answer my other two questions as well: I could consider if I evenly divide my time between another set of four courses, and evaluate how different courses demand screen time. The diligence to collect this data would be challenging, and a significant bias in the. data would arise if I were off-campus in one semester (as I am now), and on-campus in another.
+	
+	I know that this data is not my own once I have given it to Google; it will be used to get targeted ads in front of me, and likely track my behavior in ways of which I am not aware. 
+	
+	If I were to do a similar project with others' data, it would feel best to me if they understood fully what I was tracking and why I was tracking it, and they had given their informed consent. In that project, I would have the responsibility to accurately represent their data and draw conclusions that I know are not misleading. 
+
