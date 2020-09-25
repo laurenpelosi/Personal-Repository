@@ -73,24 +73,24 @@ class_per_day <- data %>%
 View(class_per_day)
 
 #Finding the total time spent on all four subjects in a day and adding a column to show it
-#pivoted <- data %>%
-  #pivot_wider(id_cols = date, names_from = subject, values_from = time) %>%
-  #filter(date != "2020-06-22") %>%
-  #select(date, health, math, law, "data science") %>%
-  #pivot_longer(cols = c(health, math, law, "data science"), names_to = "subject", values_to = "time") %>%
-  #filter(time != "NULL")
-  #View
+table_Q1 <- class_per_day %>%
+  pivot_wider(id_cols = date, names_from = subject, values_from = time) %>%
+  filter(date != "2020-06-22") %>%
+  select(date, health, math, law, "data science")
+
+table_Q1[is.na(table_Q1)] <- 0
 
 ```
 
 ```{r}
 #Stacked bar chart 
-
 ggplot(class_per_day, aes(fill = subject, y = time, x = date)) + 
     geom_bar(position="stack", stat="identity")
 ```
 
-[Conclusions about stacked bar chart.]
+There are a couple significant takeaways from the stacked bar chart. Responsive to my research question, the chart tells me that my time is not split evenly between my courses. I spend the most time working on my math course - at least an hour on the course each day - which is about double the time I spend working on my Health Economics course, which I call "health." This could be in part because I was preparing for a math exam over this time period. 
+
+Another interesting finding, which I wasn't looking for directly, is that the total time I spend on school work varies greatly from day to day, with a maximum of 8 hours and a minimum of 1. I think this is because, some days, recruiting events demand a lot of my time. In day to day life, I hadn't noticed this disparity because both school work and recruiting events involve screen time, and feel somewhat the same. The next visualization will break down school and non-school screen time. 
 
 ## How is my total screen time divided between school-related activities and non-school related activities?
 
@@ -106,8 +106,11 @@ data2 <- data %>%
                              (str_detect(type, "office hours") ~ "school"),
                               (str_detect(type, "advising") ~ "school"),
                              (str_detect(type, "recruiting") ~ "non_school"),
+                             (str_detect(type, "internship") ~ "non_school"),
+                             (str_detect(type, "research") ~ "non_school"),
                             (str_detect(type, "basketball") ~ "non_school"))) %>%
-  filter(category != "NA")
+  filter(category != "NA") %>%
+  filter(date <= "2020-09-16")
 
 class(data2)
 
@@ -115,11 +118,15 @@ data3 <- data2 %>%
   group_by(date, category) %>%
   summarize(time = sum(time))
 
-table_Q2 <- data3 %>%
-  pivot_wider(id_cols = date, names_from = category, values_from = time) %>%
-  mutate(screen_time = non_school + school)
+View(da)
 
+table_Q2 <- data3 %>%
+  pivot_wider(id_cols = date, names_from = category, values_from = time)
 table_Q2[is.na(table_Q2)] <- 0
+table_Q2 <- table_Q2 %>%
+  mutate(screen_time = (non_school + school))
+
+View(table_Q2)
 
 ```
 
@@ -128,20 +135,22 @@ table_Q2[is.na(table_Q2)] <- 0
 #Creating  the plot
 ggplot(data3, aes(x = date, y = time, fill = category)) + 
     geom_area()
-
 ```
 
-[Conclusions about stacked area chart.]
+From the stacked area plot, I again see two significant takeaways. The first is that, in response to my research question, my screen time is predominately dedicated to schoolwork. When schoolwork is reduced, non-schoolwork time increases to maintain above 5 hours of screen time most days. Exceptions happened on Sept 11 and Sept 12, for which total screen time was very low (on Sept 12, I had 0 hours of non-school screen time). 
+
+Another takeaway is that my hypothesis to explain fluctuations in time spent on schoolwork (from my first research question) is not fully correct. While sometimes low schoolwork hours correlated with high non-schoolwork hours, low time spent on schoolwork cannot always be explained by high time spent on non-schoolwork. 
+
+Next I will look at the last activity I recorded, exercise, and how time spent exercising correlates with screen time. 
 
 ## Do I allow my work to affect how much exercise I'm getting in a day? 
 
 ```{r}
 tot_col <- data %>%
+  filter(type != "exercise") %>%
   select(date, type, time) %>%
   group_by(date) %>%
   summarize(total = sum(time))
-
-tot_col
 
 exc_col <- data %>%
   select(date, type, time) %>%
@@ -158,15 +167,37 @@ names(thirteenth) <- c("date", "total", "exercise")
 
 table <- inner_join(tot_col, exc_col)
 table <- rbind(table, sixth, seventh, thirteenth)
-table %>%
-  mutate(percent = 100*(exercise/total))
+
+table$row_num <- seq.int(nrow(table)) 
+table_Q3 <- table %>%
+  select(date, total, exercise) %>%
+  rename(non_exercise = total) %>%
+  arrange(exercise) %>%
+  mutate(non_exc_type = case_when
+    (non_exercise > 8 ~ "high",
+    (non_exercise > 4 ~ "medium"),
+    (non_exercise > 0 ~ "low"))) %>%
+  mutate(exc_type = case_when
+    (exercise == "0" ~ "none",
+    (exercise == "0.5" ~ "low"),
+    (exercise == "0.75" ~ "medium"),
+    (exercise == "1") ~ "high"))
+
+View(table_Q3) 
+
   
 ```
-[Conclusions about table.]
+The table tells me that exercise is likely uncorrelated with work done that day. My hypothesis that a high amount of time spent on other activates might detract from exercise does not seem to be supported; "high" non_exercise is paired with both "low" and "none" exercise on different days. Similarly, "low" non_exercise is paired with "low", "medium", and "high" exercise on different days.
+An alternate hypothesis could be that there are some days of high motivation and low motivation: "high" non_exercise is paired with "high" exercise on one day, while "low" non_exercise" is paired with "low" exercise on another day. 
 
-##Findings and Next Steps
+##Findings
 
-
+After investigating my three research questions, I've found three key takeaways: 
+  1. Of the time I spend on coursework, I spend a disproportionately large amount on my math course.
+  2. While my screen time is very high overall, it is  more often dedicated to my courses rather        than to other activities, like recruiting, my internship, and my research project. 
+  3. While I know my high screen time overall has caused the amount of time I spend exercising each     day to be lower than at other times in my life, variations in screen time from day to day to not     seem to dictate how much exercise I get in a particular day. 
+  
+I can now apply this information. I can focus on ways to be more efficient in my math work in order to cut down on my total screen time, since academic work is the biggest driver of my screen time and math is the biggest driver of the time I spend on coursework. 
 
 ##Reflections
 
@@ -174,7 +205,5 @@ table %>%
 
 	To more fully answer the questions I have posed, I think I would need to record data for at least an entire academic year, though I could break when school breaks. To accurately asses whether I let other activities interfere with time I set aside to exercise, I would need to look at periods of time in which I’m engaged in different types of activities. Two semesters, involving two sets of four courses, would help me better understand if my time spent exercising is resistant to all types of time demands or just some (STEM vs. humanities courses, courses I find challenging vs. courses I find less challenging, etc.). This would improve the quality of the data I use to answer my other two questions as well: I could consider if I evenly divide my time between another set of four courses, and evaluate how different courses demand screen time. The diligence to collect this data would be challenging, and a significant bias in the. data would arise if I were off-campus in one semester (as I am now), and on-campus in another.
 	
-	I know that this data is not my own once I have given it to Google; it will be used to get targeted ads in front of me, and likely track my behavior in ways of which I am not aware. 
-	
-	If I were to do a similar project with others' data, it would feel best to me if they understood fully what I was tracking and why I was tracking it, and they had given their informed consent. In that project, I would have the responsibility to accurately represent their data and draw conclusions that I know are not misleading. 
+	I know that this data is not my own now that I have given it to Google; it will be used to get targeted ads in front of me, and likely track my behavior in ways of which I am not aware. If I were to do a similar project with others' data, it would feel best to me if they understood fully what I was tracking and why I was tracking it, and they had given their informed consent. In that project, I would have the responsibility to accurately represent their data and draw conclusions that I know are not misleading. While I believe I've presented my data accurately here, I would feel the stakes were higher if someone else were to be making choices based on conclusions I've presented to them. 
 
