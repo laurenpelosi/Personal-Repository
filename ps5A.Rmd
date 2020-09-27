@@ -1,0 +1,141 @@
+---
+title: "STAT 231: Problem Set 5A"
+author: "Lauren Pelosi"
+date: "due by 5 PM on Monday, September 28"
+output: pdf_document
+---
+
+```{r, setup, include=FALSE}
+library(tidyverse)
+library(mdsr)
+library(tidytext)
+library(aRxiv)
+library(wordcloud)
+
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+\newpage
+# 1. Text as Data
+
+### a.
+In Section 19.1.1, the `grep` and `grepl` functions are introduced for detecting a pattern in a character vector (like finding a needle in a haystack).  The following three calls look similar, but return different results.  Explain what the 6 returned records indicate in each case:
+
+- `head(grepl("  MACBETH", macbeth))`
+- `head(grep("  MACBETH", macbeth, value = TRUE))`
+- `head(grep("  MACBETH", macbeth))`
+
+(Yes, the textbook explains the differences in these commands/calls to these commands, but it can be helpful if you run the lines yourself as well to be sure they work as you'd expect and to inspect the results.) 
+
+> ANSWER: The line `head(grepl("  MACBETH", macbeth))` returns the indices of macbeth in which "MACBETH" was found, or the lines of the play in which Macbeth is speaking. The line `head(grep("  MACBETH", macbeth, value = TRUE))` returns what those lines actually contain, or Macbeth's dialogue. The line `head(grep("  MACBETH", macbeth))`checks every line of the play to see if it contains "Macbeth"MACBETH"; because we're looking at the head, we see that Macbeth doesn't speak in the first six lines. 
+
+```{r}
+# defining "macbeth" object
+macbeth_url <- "http://www.gutenberg.org/cache/epub/1129/pg1129.txt"
+Macbeth_raw <- RCurl::getURL(macbeth_url)
+data(Macbeth_raw)
+#Macbeth_raw
+
+# strsplit returns a list: we only want the first element
+macbeth <- stringr::str_split(Macbeth_raw, "\r\n")[[1]]
+class(macbeth)
+length(macbeth)
+
+### finding literal strings
+head(grep("  MACBETH", macbeth))
+head(grep("  MACBETH", macbeth, value = TRUE))
+head(grepl("  MACBETH", macbeth))
+```
+
+
+### b.
+Section 19.1.1 also introduces regular expressions.  Why do the two lines below differ in their results?
+
+- `head(grep("MACBETH\\.", macbeth, value = TRUE))`
+- `head(grep("MACBETH.", macbeth, value = TRUE))`
+
+(Yes, the textbook explains the differences, but it can be helpful if you run the lines yourself as well to be sure they work as you'd expect and to inspect the results.) 
+
+> ANSWER:  The line head(grep("MACBETH\\.", macbeth, value = TRUE)) searches for the literal value of "MACBETH" to ensure the lines found are the ones in which he's speaking. The line head(grep("MACBETH.", macbeth, value = TRUE)) will include lines Lady Macbeth speaks, because the backslahes to escape the character are not included. 
+
+```{r}
+head(grep("MACBETH\\.", macbeth, value = TRUE))
+#head(grep("MACBETH.", macbeth, value = TRUE))
+```
+
+### c. 
+
+The `stringr` package from the `tidyverse` collection of packages, has functions that work equivalently as `grep` and `grepl`.  In particular:
+
+- `str_detect(string=, pattern=)` is equivalent to `grepl(pattern=, x=)`
+- `str_which(string=, pattern=)` is equivalent to `grep(pattern=, x=)`
+- `str_subset(string=, pattern=)` is equivalent to `grep(pattern=, x=, value=TRUE)`
+
+Uncomment and run the code below to ensure the same results are returned for each different pair (at least for the first six records).  In words, explain what overall pattern is being searched for (i.e., what does the pattern "MAC[B-Z]" indicate?)?
+
+> ANSWER: "MAC[B-Z]" indicates that the search will include any line with a word that beings with "MAC". In this play, this will include lines that mention a machine, Macbeth, Lady Macbeth, and Macduff. 
+
+```{r}
+# (1) `str_detect(string=, pattern=)` is equivalent to `grepl(pattern=, x=)`
+ #head(grepl("MAC[B-Z]", macbeth))
+ #head(str_detect(macbeth, "MAC[B-Z]"))
+
+# (2) `str_which(string=, pattern=)` is equivalent to `grep(pattern=, x=)`
+ #head(grep("MAC[B-Z]", macbeth))
+ #head(str_which(macbeth,"MAC[B-Z]"))
+
+# (3) `str_subset(string=, pattern=)` is equivalent to `grep(pattern=, x=, value=TRUE)`
+ head(grep("MAC[B-Z]", macbeth, value = TRUE))
+ head(str_subset(macbeth, "MAC[B-Z]"))
+```
+
+### d.  OPTIONAL
+
+In section 19.2.2, the `wordcloud` package is used to create a word cloud based on text in abstracts from Data Science articles in arXiv (which is "a fast-growing electronic repository of preprints of scientific papers from many disciplines").  I've provided some code below to get you started coding along with the example.  *This part (d) will not be graded, but is included to encourage you to test and explore some of the code in the extended example.*  What words are included in `tidytexts`'s `stop_words` dataset?  Do you think all of these words should be considered stop words (i.e. excluded from analysis) in all scenarios?  Are there any that might be useful in some contexts?  
+
+```{r}
+# note that the tidytext, aRxiv, and wordcloud packages were loaded in the 
+# setup code chunk at the top of the program
+
+# arxiv_search() is from the aRxiv package
+DataSciencePapers <- arxiv_search(
+  query = '"Data Science"', 
+  limit = 20000, 
+  batchsize = 100
+)
+
+glimpse(DataSciencePapers)
+
+DataSciencePapers <- DataSciencePapers %>%
+  mutate(
+    submitted = lubridate::ymd_hms(submitted) 
+    , updated = lubridate::ymd_hms(updated)
+    , field = str_extract(primary_category, "^[a-z,-]+")
+    , Field = ifelse(field == "cs", "Computer Science", "Other discipline"))
+
+# stop words dataset provided by the tidytext package
+stop_words <- tidytext::stop_words
+
+# the unnest_tokens function is from the tidytext package
+arxiv_words <- DataSciencePapers %>%
+  unnest_tokens(output = word, input = abstract, token = "words") %>%
+  anti_join(stop_words, by = "word") %>%
+  select(word, id)
+
+arxiv_word_freqs <- arxiv_words %>%
+  count(id, word, sort = TRUE) %>%
+  select(word, n, id)
+
+
+# the wordcloud function is from the wordcloud package
+# you may also need to install the "tm" package in order to use the function
+set.seed(1962)
+wordcloud(DataSciencePapers$abstract, 
+  max.words = 40, 
+  scale = c(8, 1), 
+  colors = topo.colors(n = 30), 
+  random.color = TRUE)
+```
+
