@@ -1,0 +1,12 @@
+name: PS3BUpload
+title: PS3BUpload
+username:
+account: laurenpelosi27
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2840684
+bundleId: 3644274
+url: https://laurenpelosi27.shinyapps.io/PS3BUpload/
+when: 1600445452.46385
+asMultiple: FALSE
+asStatic: FALSE

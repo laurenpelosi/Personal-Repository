@@ -1,0 +1,12 @@
+name: Lab04-shiny-babynames
+title: Lab04-shiny-babynames
+username:
+account: laurenpelosi27
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2812322
+bundleId: 3631654
+url: https://laurenpelosi27.shinyapps.io/Lab04-shiny-babynames/
+when: 1600180453.74675
+asMultiple: FALSE
+asStatic: FALSE
